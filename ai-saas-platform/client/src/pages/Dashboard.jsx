@@ -1,23 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { useUser } from '@clerk/clerk-react';
+import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 
 const Dashboard = () => {
-  const { user, getToken } = useUser();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Check pro status from both user metadata and localStorage (similar to Header)
-  const isPro = user?.publicMetadata?.isPro || localStorage.getItem('user_isPro') === 'true';
-  const subscriptionEndDate = user?.publicMetadata?.subscriptionEndDate || localStorage.getItem('user_subscriptionEndDate');
+  // Check pro status from user object and localStorage
+  const isPro = user?.isPro || localStorage.getItem('user_isPro') === 'true';
+  const subscriptionEndDate = user?.subscriptionEndDate || localStorage.getItem('user_subscriptionEndDate');
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        if (user) await user.reload();
-        const token = await getToken();
         const response = await api.dashboard.getStats();
         setStats(response.data);
       } catch {
@@ -32,7 +30,7 @@ const Dashboard = () => {
     };
 
     if (user) fetchStats();
-  }, [user, getToken]);
+  }, [user]);
 
   if (loading) return <div className="animate-spin h-12 w-12 border-b-2 border-blue-600 mx-auto mt-20"></div>;
 

@@ -3,9 +3,11 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Check, Sparkles, Zap, Shield, Users } from 'lucide-react';
 import Button from '../components/common/Button';
 import PaymentModal from '../components/common/PaymentModal';
+import { useAuth } from '../contexts/AuthContext';
 
 const Home = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const { user } = useAuth();
 
   const aiTools = [
     { icon: '📝', name: 'Article Writer', desc: 'Generate high-quality articles', color: 'from-blue-500 to-cyan-500' },
@@ -41,19 +43,34 @@ const Home = () => {
               </span>
             </h1>
             <p className="text-xl text-gray-600 mb-10">
-              Generate articles, blogs, images, and more with our powerful AI tools.
-              Perfect for creators, marketers, and businesses.
+              {user ?
+                'Welcome back! Access all your favorite AI tools and create amazing content.' :
+                'Generate articles, blogs, images, and more with our powerful AI tools. Perfect for creators, marketers, and businesses.'
+              }
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/sign-up">
-                <Button size="large">
-                  Start Free Trial
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
-              <Button variant="outline" size="large" onClick={() => setShowPaymentModal(true)}>
-                View Pricing
-              </Button>
+              {user ? (
+                // Show dashboard button for logged-in users
+                <Link to="/dashboard">
+                  <Button size="large">
+                    Go to Dashboard
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </Link>
+              ) : (
+                // Show signup buttons for non-logged-in users
+                <>
+                  <Link to="/login">
+                    <Button size="large">
+                      Start Free Trial
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </Button>
+                  </Link>
+                  <Button variant="outline" size="large" onClick={() => setShowPaymentModal(true)}>
+                    View Pricing
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -65,7 +82,10 @@ const Home = () => {
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4">AI Tools</h2>
             <p className="text-gray-600 text-lg">
-              Click any tool to start creating instantly
+              {user ?
+                'FREE tools work instantly. Upgrade to PRO for premium features.' :
+                'Click any tool to start creating instantly'
+              }
             </p>
           </div>
 

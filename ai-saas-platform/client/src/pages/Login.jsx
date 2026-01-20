@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../contexts/AuthContext';
 
 const Login = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -9,29 +9,30 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
-  const { loginWithEmail, signupWithEmail, loginWithClerk, getAuthOptions } = useAuth();
+  const { login, signup } = useAuth();
   const navigate = useNavigate();
-
-  const authOptions = getAuthOptions();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      if (isLogin) await loginWithEmail(email, password);
-      else await signupWithEmail(name, email, password);
+      let result;
+      if (isLogin) {
+        result = await login(email, password);
+      } else {
+        result = await signup(name, email, password);
+      }
+
+      if (!result.success) {
+        alert(result.error || 'Authentication failed');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       alert(err.message || 'Authentication failed');
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleClerkLogin = async () => {
-    setLoading(true);
-    try { await loginWithClerk(); }
-    catch { alert('Clerk login failed'); }
-    finally { setLoading(false); }
   };
 
   return (
@@ -45,34 +46,50 @@ const Login = () => {
           {isLogin ? 'Welcome Back' : 'Create Account'}
         </h2>
 
-        <div className="space-y-4">
-          {authOptions.map(opt => (
-            opt.id === 'clerk' ? (
-              <button
-                key={opt.id}
-                onClick={handleClerkLogin}
-                disabled={loading}
-                className="w-full flex items-center justify-center p-4 border-2 border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition disabled:opacity-50"
-              >
-                {opt.name}
-              </button>
-            ) : (
-              <form key={opt.id} onSubmit={handleSubmit} className="p-4 border-2 border-gray-200 rounded-xl space-y-4">
-                {!isLogin && <input type="text" placeholder="Full Name" value={name} onChange={e => setName(e.target.value)} required className="w-full p-2 border rounded-lg"/>}
-                <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required className="w-full p-2 border rounded-lg"/>
-                <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required className="w-full p-2 border rounded-lg"/>
-                <div className="flex justify-between items-center">
-                  <button type="button" onClick={() => setIsLogin(!isLogin)} className="text-blue-600 text-sm">
-                    {isLogin ? "Sign up" : "Sign in"}
-                  </button>
-                  <button type="submit" disabled={loading} className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg">
-                    {loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Sign Up')}
-                  </button>
-                </div>
-              </form>
-            )
-          ))}
-        </div>
+        <form onSubmit={handleSubmit} className="p-6 border-2 border-gray-200 rounded-xl space-y-4 bg-white shadow-sm">
+          {!isLogin && (
+            <input
+              type="text"
+              placeholder="Full Name"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              required
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          )}
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            required
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            required
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          <div className="flex justify-between items-center">
+            <button
+              type="button"
+              onClick={() => setIsLogin(!isLogin)}
+              className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+            >
+              {isLogin ? "Create account" : "Sign in instead"}
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 font-medium"
+            >
+              {loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Sign Up')}
+            </button>
+          </div>
+        </form>
 
         <p className="text-xs text-gray-500 text-center">By continuing, you agree to our Terms of Service and Privacy Policy</p>
       </div>

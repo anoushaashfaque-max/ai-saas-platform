@@ -15,21 +15,23 @@ export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [authType, setAuthType] = useState('jwt'); // 'jwt' or 'clerk'
+  const [authType, setAuthType] = useState('jwt');
 
   useEffect(() => {
     // Check for stored user session
-    const storedUser = localStorage.getItem('ai_saas_user');
-    const storedAuthType = localStorage.getItem('ai_saas_auth_type');
+    const storedUser = localStorage.getItem('user');
+    const storedToken = localStorage.getItem('token');
+    const storedAuthType = localStorage.getItem('auth_method');
 
-    if (storedUser) {
+    if (storedUser && storedToken) {
       try {
         const userData = JSON.parse(storedUser);
         setUser(userData);
-        setAuthType(storedAuthType || 'jwt');
+        setAuthType(storedAuthType || 'email');
       } catch (error) {
-        localStorage.removeItem('ai_saas_user');
-        localStorage.removeItem('ai_saas_auth_type');
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        localStorage.removeItem('auth_method');
       }
     }
     setLoading(false);
@@ -37,62 +39,75 @@ export const AuthProvider = ({ children }) => {
 
   // JWT Authentication
   const loginWithJWT = async (email, password) => {
-    const mockUser = {
-      id: '123',
-      name: email.split('@')[0],
-      email,
-      isPro: false,
-      authType: 'jwt',
-      createdAt: new Date().toISOString(),
-      lastLogin: new Date().toISOString(),
-    };
+    try {
+      // Call backend login API
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
-    setUser(mockUser);
-    localStorage.setItem('ai_saas_user', JSON.stringify(mockUser));
-    localStorage.setItem('ai_saas_auth_type', 'jwt');
-    return { success: true, user: mockUser };
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Login failed');
+      }
+
+      const userData = data.data.user;
+      const token = data.data.token;
+
+      setUser(userData);
+      localStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem('token', token);
+      localStorage.setItem('auth_method', 'email');
+
+      return { success: true, user: userData };
+    } catch (error) {
+      console.error('JWT login error:', error);
+      return { success: false, error: error.message };
+    }
   };
 
-  // Clerk Authentication (Simulation)
-  const loginWithClerk = async (email, password) => {
-    const mockUser = {
-      id: 'clerk_123',
-      name: email.split('@')[0],
-      email,
-      isPro: false,
-      authType: 'clerk',
-      clerkId: 'user_clerk_123',
-      createdAt: new Date().toISOString(),
-      lastLogin: new Date().toISOString(),
-    };
-
-    setUser(mockUser);
-    localStorage.setItem('ai_saas_user', JSON.stringify(mockUser));
-    localStorage.setItem('ai_saas_auth_type', 'clerk');
-    return { success: true, user: mockUser };
-  };
-
+  // JWT Signup
   const signup = async (name, email, password) => {
-    const mockUser = {
-      id: '456',
-      name,
-      email,
-      isPro: false,
-      authType: 'jwt',
-      createdAt: new Date().toISOString(),
-      lastLogin: new Date().toISOString(),
-    };
+    try {
+      // Call backend signup API
+      const response = await fetch('http://localhost:5000/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name, email, password }),
+      });
 
-    setUser(mockUser);
-    localStorage.setItem('ai_saas_user', JSON.stringify(mockUser));
-    localStorage.setItem('ai_saas_auth_type', 'jwt');
-    return { success: true, user: mockUser };
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Signup failed');
+      }
+
+      const userData = data.data.user;
+      const token = data.data.token;
+
+      setUser(userData);
+      localStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem('token', token);
+      localStorage.setItem('auth_method', 'email');
+
+      return { success: true, user: userData };
+    } catch (error) {
+      console.error('Signup error:', error);
+      return { success: false, error: error.message };
+    }
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('ai_saas_user');
-    localStorage.removeItem('ai_saas_auth_type');
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        localStorage.removeItem('auth_method');
     navigate('/');
   };
 
@@ -104,22 +119,21 @@ export const AuthProvider = ({ children }) => {
     };
 
     setUser(updatedUser);
-    localStorage.setItem('ai_saas_user', JSON.stringify(updatedUser));
+    localStorage.setItem('user', JSON.stringify(updatedUser));
     return updatedUser;
   };
 
   const updateUser = (updates) => {
     const updatedUser = { ...user, ...updates };
     setUser(updatedUser);
-    localStorage.setItem('ai_saas_user', JSON.stringify(updatedUser));
+    localStorage.setItem('user', JSON.stringify(updatedUser));
   };
 
   const value = {
     user,
     loading,
     authType,
-    loginWithJWT,
-    loginWithClerk,
+    login: loginWithJWT,
     signup,
     logout,
     upgradeToPro,

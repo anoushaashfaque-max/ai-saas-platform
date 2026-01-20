@@ -210,9 +210,72 @@ const getPaymentHistory = async (req, res) => {
   }
 };
 
+// Create generic payment intent
+const createPaymentIntent = async (req, res) => {
+  try {
+    const { amount, currency = 'usd', description } = req.body;
+    const { user, userId, clerkId } = req;
+
+    console.log('Create payment intent request:', { amount, currency, description });
+
+    if (!amount || amount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid amount is required',
+        error: 'Missing or invalid amount field'
+      });
+    }
+
+    // Get or create Stripe customer
+    let customer = await getCustomerByEmail(user.email);
+    if (!customer) {
+      customer = await createCustomer(user.email, user.name, clerkId);
+    }
+
+    // Update user with customer ID if not set
+    if (!user.stripeCustomerId) {
+      user.stripeCustomerId = customer.id;
+      await user.save();
+    }
+
+    // Create payment intent
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(amount * 100), // Convert to cents
+      currency,
+      customer: customer.id,
+      description: description || 'AI SaaS Platform Payment',
+      automatic_payment_methods: {
+        enabled: true,
+      },
+      metadata: {
+        userId: userId.toString(),
+        clerkId
+      }
+    });
+
+    res.json({
+      success: true,
+      data: {
+        clientSecret: paymentIntent.client_secret,
+        paymentIntentId: paymentIntent.id,
+        amount: paymentIntent.amount,
+        currency: paymentIntent.currency
+      }
+    });
+
+  } catch (error) {
+    console.error('Create payment intent error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to create payment intent'
+    });
+  }
+};
+
 module.exports = {
   createProCheckout,
   createCreditPayment,
+  createPaymentIntent,
   handleStripeWebhook,
   getPaymentHistory
 };

@@ -9,7 +9,7 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:5173',
+        target: 'http://localhost:5000',
         changeOrigin: true,
       }
     }
@@ -19,7 +19,6 @@ export default defineConfig({
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
-          auth: ['@clerk/clerk-react'],
           ui: ['lucide-react', 'react-hot-toast'],
         }
       }

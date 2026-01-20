@@ -1,13 +1,7 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
-import {
-  SignedIn,
-  SignedOut,
-  UserButton,
-  useClerk,
-  useUser
-} from '@clerk/clerk-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Menu, X, LogOut, User } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 import ProTimer from '../common/ProTimer';
 
 const navItems = [
@@ -19,16 +13,11 @@ const navItems = [
 
 const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
-  const { openSignIn } = useClerk();
-  const { user } = useUser();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
-  const isPro =
-    user?.publicMetadata?.isPro ||
-    localStorage.getItem('user_isPro') === 'true';
-
-  const subscriptionEndDate =
-    user?.publicMetadata?.subscriptionEndDate ||
-    localStorage.getItem('user_subscriptionEndDate');
+  const isPro = user?.isPro || localStorage.getItem('user_isPro') === 'true';
+  const subscriptionEndDate = user?.subscriptionEndDate || localStorage.getItem('user_subscriptionEndDate');
 
   return (
     <header className="sticky top-0 z-50 bg-white/90 backdrop-blur border-b">
@@ -49,14 +38,15 @@ const Header = () => {
           <nav className="hidden md:flex gap-8">
             {navItems.map(item => (
               item.requiresAuth ? (
-                <SignedIn key={item.path}>
+                user ? (
                   <Link
+                    key={item.path}
                     to={item.path}
                     className="font-medium text-gray-600 hover:text-blue-600"
                   >
                     {item.label}
                   </Link>
-                </SignedIn>
+                ) : null
               ) : (
                 <Link
                   key={item.path}
@@ -71,23 +61,32 @@ const Header = () => {
 
           {/* Desktop Auth */}
           <div className="hidden md:flex items-center gap-4">
-            <SignedIn>
-              <ProTimer
-                isPro={isPro}
-                subscriptionEndDate={subscriptionEndDate}
-              />
+            {user ? (
+              <>
+                <ProTimer
+                  isPro={isPro}
+                  subscriptionEndDate={subscriptionEndDate}
+                />
 
-              <UserButton afterSignOutUrl="/" />
-            </SignedIn>
-
-            <SignedOut>
-              <button
-                onClick={openSignIn}
+                <div className="flex items-center gap-2">
+                  <User size={16} />
+                  <span className="text-sm text-gray-600">{user.name || user.email}</span>
+                  <button
+                    onClick={logout}
+                    className="px-3 py-1 text-sm rounded bg-gray-100 hover:bg-gray-200"
+                  >
+                    <LogOut size={14} />
+                  </button>
+                </div>
+              </>
+            ) : (
+              <Link
+                to="/login"
                 className="px-5 py-2 rounded-lg text-white bg-gradient-to-r from-blue-600 to-purple-600"
               >
                 Get Started
-              </button>
-            </SignedOut>
+              </Link>
+            )}
           </div>
 
           {/* Mobile Toggle */}
@@ -104,15 +103,16 @@ const Header = () => {
           <div className="md:hidden border-t py-4 space-y-4">
             {navItems.map(item => (
               item.requiresAuth ? (
-                <SignedIn key={item.path}>
+                user ? (
                   <Link
+                    key={item.path}
                     to={item.path}
                     onClick={() => setMenuOpen(false)}
                     className="block text-gray-600 hover:text-blue-600"
                   >
                     {item.label}
                   </Link>
-                </SignedIn>
+                ) : null
               ) : (
                 <Link
                   key={item.path}
@@ -125,27 +125,37 @@ const Header = () => {
               )
             ))}
 
-            <SignedIn>
+            {user ? (
               <div className="pt-4 border-t space-y-3">
                 <ProTimer
                   isPro={isPro}
                   subscriptionEndDate={subscriptionEndDate}
                 />
-                <UserButton afterSignOutUrl="/" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <User size={16} />
+                    <span className="text-sm text-gray-600">{user.name || user.email}</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      logout();
+                      setMenuOpen(false);
+                    }}
+                    className="px-3 py-1 text-sm rounded bg-gray-100 hover:bg-gray-200"
+                  >
+                    <LogOut size={14} />
+                  </button>
+                </div>
               </div>
-            </SignedIn>
-
-            <SignedOut>
-              <button
-                onClick={() => {
-                  openSignIn();
-                  setMenuOpen(false);
-                }}
-                className="w-full py-2 rounded-lg text-white bg-gradient-to-r from-blue-600 to-purple-600"
+            ) : (
+              <Link
+                to="/login"
+                onClick={() => setMenuOpen(false)}
+                className="block w-full py-2 rounded-lg text-center text-white bg-gradient-to-r from-blue-600 to-purple-600"
               >
                 Get Started
-              </button>
-            </SignedOut>
+              </Link>
+            )}
           </div>
         )}
       </div>

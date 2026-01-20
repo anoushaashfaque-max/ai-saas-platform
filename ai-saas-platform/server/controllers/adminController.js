@@ -105,6 +105,7 @@ const getAdminStats = async (req, res) => {
 // Get all users with pagination
 const getUsers = async (req, res) => {
   try {
+    console.log('getUsers called by admin:', req.user?.email);
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const search = req.query.search || '';
@@ -131,6 +132,8 @@ const getUsers = async (req, res) => {
       .select('name email isPro isAdmin stripeCustomerId createdAt lastLogin');
 
     const total = await User.countDocuments(query);
+
+    console.log('Found users:', total, 'for query:', query);
 
     // Get user creation counts
     const userIds = users.map(user => user._id);
@@ -176,13 +179,16 @@ const updateUser = async (req, res) => {
     const { userId } = req.params;
     const { isPro, isAdmin } = req.body;
 
-    const user = await User.findById(userId);
-
-    if (!user) {
-      return res.status(404).json({
+    if (req.user._id.toString() === userId && isAdmin === false) {
+      return res.status(400).json({
         success: false,
-        message: 'User not found'
+        message: "You can't remove your own admin access"
       });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
     }
 
     if (typeof isPro === 'boolean') user.isPro = isPro;
@@ -190,23 +196,17 @@ const updateUser = async (req, res) => {
 
     await user.save();
 
-    res.json({
-      success: true,
-      message: 'User updated successfully',
-      data: { user }
-    });
+    res.json({ success: true, data: { user } });
   } catch (error) {
-    console.error('Update user error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update user'
-    });
+    res.status(500).json({ success: false, message: 'Failed to update user' });
   }
 };
+
 
 // Get all payments
 const getPayments = async (req, res) => {
   try {
+    console.log('getPayments called by admin:', req.user?.email);
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const status = req.query.status;

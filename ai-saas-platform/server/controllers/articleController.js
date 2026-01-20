@@ -1,86 +1,136 @@
-const { generateArticle, generateBlogTitles, reviewResume } = require('../services/openaiService');
+const {
+  generateArticle,
+  generateBlogTitles,
+  reviewResume
+} = require('../services/openaiService');
+
 const Creation = require('../models/Creation');
 
-// Generate article (FREE)
+// ARTICLE
 const createArticle = async (req, res) => {
   try {
-    const { topic, tone, length } = req.body;
-    const { user, userId, clerkId } = req;
+    const { topic, tone, length, keywords } = req.body;
+    const { userId, clerkId } = req;
 
-    if (!topic?.trim()) return res.status(400).json({ success: false, message: 'Topic is required' });
+    console.log('Article request:', { topic, tone, length, keywords, userId, clerkId });
+
+    if (!topic?.trim()) {
+      return res.status(400).json({ success: false, message: 'Topic is required' });
+    }
+
+    if (!userId || !clerkId) {
+      return res.status(400).json({ success: false, message: 'User authentication required' });
+    }
 
     const article = await generateArticle(topic, tone || 'professional', length || 'medium');
 
+    console.log('Generated article length:', article.length);
+
+    // Create creation record
     const creation = await Creation.create({
       userId,
       clerkId,
       toolType: 'article-writer',
       title: topic,
-      input: JSON.stringify({ topic, tone, length }),
-      output: article,
-      metadata: { tone, length }
+      input: JSON.stringify({ topic, tone, length, keywords }),
+      output: article
     });
+    console.log('Creation record saved:', creation._id);
 
-    res.status(201).json({ success: true, data: { article, creationId: creation._id } });
-  } catch (error) {
-    console.error('Article generation error:', error.message);
-    res.status(500).json({ success: false, message: 'Failed to generate article' });
+    res.status(201).json({
+      success: true,
+      data: { article },
+      message: 'Article generated successfully'
+    });
+  } catch (err) {
+    console.error('Article generation error:', err);
+    res.status(500).json({
+      success: false,
+      message: err.message || 'Failed to generate article',
+      error: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
   }
 };
 
-// Generate blog titles (FREE)
+// BLOG TITLES
 const createBlogTitles = async (req, res) => {
   try {
-    const { keyword, category, tone, quantity } = req.body;
+    console.log('Blog titles controller called');
+    console.log('Request body:', req.body);
+    console.log('Request headers:', req.headers);
+
+    // Check if req.body exists first
+    if (!req.body) {
+      console.error('Request body is undefined');
+      return res.status(400).json({ success: false, message: 'Request body is required' });
+    }
+
+    // Safe destructuring with defaults
+    const { keyword, category = 'technology', tone = 'clickbait', quantity = 10 } = req.body || {};
     const { userId, clerkId } = req;
 
-    if (!keyword?.trim()) return res.status(400).json({ success: false, message: 'Keyword is required' });
+    console.log('Blog titles request:', { keyword, category, tone, quantity, userId, clerkId });
 
-    const titles = await generateBlogTitles(keyword, category || 'technology', tone || 'clickbait', quantity || 10);
+    if (!keyword?.trim()) {
+      return res.status(400).json({ success: false, message: 'Keyword is required' });
+    }
 
+    if (!userId || !clerkId) {
+      return res.status(400).json({ success: false, message: 'User authentication required' });
+    }
+
+    const titles = await generateBlogTitles(
+      keyword,
+      category || 'technology',
+      tone || 'clickbait',
+      quantity || 10
+    );
+
+    console.log('Generated titles:', titles.length);
+
+    // Create creation record
     const creation = await Creation.create({
       userId,
       clerkId,
       toolType: 'blog-generator',
       title: keyword,
       input: JSON.stringify({ keyword, category, tone, quantity }),
-      output: JSON.stringify(titles),
-      metadata: { category, tone, quantity: titles.length }
+      output: JSON.stringify(titles)
     });
+    console.log('Creation record saved:', creation._id);
 
-    res.status(201).json({ success: true, data: { titles, creationId: creation._id } });
-  } catch (error) {
-    console.error('Blog titles generation error:', error);
-    res.status(500).json({ success: false, message: error.message || 'Failed to generate blog titles' });
+    res.status(201).json({
+      success: true,
+      data: { titles },
+      message: 'Blog titles generated successfully'
+    });
+  } catch (err) {
+    console.error('Blog titles generation error:', err);
+    res.status(500).json({
+      success: false,
+      message: err.message || 'Failed to generate blog titles'
+    });
   }
 };
 
-// Review resume (Pro-only)
+// RESUME (PRO)
 const reviewResumeText = async (req, res) => {
   try {
     const { resumeText } = req.body;
-    const { user, userId, clerkId } = req;
 
-    if (!resumeText?.trim()) return res.status(400).json({ success: false, message: 'Resume text is required' });
-    if (!user.isPro) return res.status(403).json({ success: false, message: 'Resume review is a Pro feature. Please upgrade to Pro.' });
+    if (!resumeText?.trim()) {
+      return res.status(400).json({ success: false, message: 'Resume text required' });
+    }
 
     const review = await reviewResume(resumeText);
-
-    const creation = await Creation.create({
-      userId,
-      clerkId,
-      toolType: 'resume-reviewer',
-      title: 'Resume Review',
-      input: JSON.stringify({ resumeText }),
-      output: review,
-      metadata: {}
-    });
-
-    res.status(201).json({ success: true, data: { review, creationId: creation._id } });
-  } catch (error) {
-    console.error('Resume review error:', error);
-    res.status(500).json({ success: false, message: error.message || 'Failed to review resume' });
+    res.status(201).json({ success: true, review });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
-module.exports = { createArticle, createBlogTitles, reviewResumeText };
+module.exports = {
+  createArticle,
+  createBlogTitles,
+  reviewResumeText
+};

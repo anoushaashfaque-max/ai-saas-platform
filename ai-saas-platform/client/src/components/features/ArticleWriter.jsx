@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { PenTool, Copy, Download, Sparkles } from 'lucide-react';
 import Button from '../common/Button';
+import { useApi } from '../../hooks/useApi';
 
 const ArticleWriter = () => {
   const [topic, setTopic] = useState('');
@@ -8,6 +9,7 @@ const ArticleWriter = () => {
   const [length, setLength] = useState('medium');
   const [loading, setLoading] = useState(false);
   const [article, setArticle] = useState('');
+  const { request } = useApi();
 
   const tones = [
     { value: 'professional', label: 'Professional' },
@@ -29,32 +31,23 @@ const ArticleWriter = () => {
     }
 
     setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      const mockArticle = `# ${topic}
+    try {
+      const response = await request('/articles/generate', {
+        method: 'POST',
+        body: JSON.stringify({ topic, tone, length }),
+      });
 
-## Introduction
-Welcome to our comprehensive guide on ${topic}. In today's fast-paced world, understanding ${topic} has become increasingly important for both personal and professional growth.
-
-## Key Insights
-1. **Fundamental Concepts**: ${topic} encompasses several key principles that form the foundation of modern practices in this field.
-2. **Practical Applications**: From business strategies to personal development, ${topic} offers numerous real-world applications.
-3. **Future Trends**: As technology evolves, ${topic} continues to adapt and grow, presenting new opportunities for innovation.
-
-## Best Practices
-- Start with clear objectives
-- Measure your progress regularly
-- Stay updated with latest developments
-- Network with professionals in the field
-
-## Conclusion
-Mastering ${topic} requires dedication and continuous learning. By applying the principles discussed in this article, you'll be well on your way to achieving success in this domain.
-
-Remember, the journey of learning ${topic} is ongoing. Stay curious, keep learning, and don't hesitate to experiment with new approaches.`;
-
-      setArticle(mockArticle);
+      if (response.success) {
+        setArticle(response.data.article);
+      } else {
+        alert(response.message || 'Failed to generate article');
+      }
+    } catch (error) {
+      console.error('Article generation error:', error);
+      alert(error.message || 'Failed to generate article');
+    } finally {
       setLoading(false);
-    }, 2000);
+    }
   };
 
   const copyToClipboard = () => {

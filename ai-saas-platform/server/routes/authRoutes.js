@@ -1,16 +1,27 @@
 const express = require('express');
 const router = express.Router();
+const jwt = require('jsonwebtoken');
 
 const {
   getCurrentUser,
   updateUser,
-  makeUserAdmin
+  makeUserAdmin,
+  createUser,
+  loginUser
 } = require('../controllers/authController');
 
 const { ensureUser } = require('../middleware/auth');
 const { apiLimiter } = require('../middleware/rateLimiter');
+const User = require('../models/User');
 
-// All routes require authentication
+// JWT Secret
+const JWT_SECRET = process.env.JWT_SECRET || 'demo_jwt_secret_key';
+
+// Public routes (no authentication required)
+router.post('/signup', apiLimiter, createUser);
+router.post('/login', apiLimiter, loginUser);
+
+// Protected routes (authentication required)
 router.use(ensureUser);
 router.use(apiLimiter);
 

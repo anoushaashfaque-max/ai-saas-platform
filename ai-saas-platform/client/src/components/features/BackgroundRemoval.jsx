@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { useUser } from '@clerk/clerk-react';
+import { useAuth } from '../../contexts/AuthContext';
 import { Upload, Download, Trash2, Image as ImageIcon, Crown } from 'lucide-react';
 import Button from '../common/Button';
 
 const BackgroundRemoval = () => {
-  const { user } = useUser();
+  const { user } = useAuth();
   const [originalImage, setOriginalImage] = useState('');
   const [processedImage, setProcessedImage] = useState('');
   const [loading, setLoading] = useState(false);

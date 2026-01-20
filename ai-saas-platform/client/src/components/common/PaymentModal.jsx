@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Check, CreditCard, Shield, Lock } from 'lucide-react';
 import Button from './Button';
-import { useUser, useClerk } from '@clerk/clerk-react';
+import { useAuth } from '../../contexts/AuthContext';
 import { API_BASE_URL } from '../../utils/constant';
 
 const PaymentModal = ({ isOpen, onClose, plan = 'pro' }) => {
@@ -14,8 +14,7 @@ const PaymentModal = ({ isOpen, onClose, plan = 'pro' }) => {
     cvc: '',
     name: '',
   });
-  const { user } = useUser();
-  const { getToken } = useClerk();
+  const { user, upgradeToPro } = useAuth();
 
   if (!isOpen) return null;
 
@@ -49,48 +48,32 @@ const PaymentModal = ({ isOpen, onClose, plan = 'pro' }) => {
 
       // Try to call backend API first
       try {
-        const token = await getToken();
-        const response = await fetch(`${API_BASE_URL}/payment/checkout/pro`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
+        const token = localStorage.getItem('token');
+        if (token) {
+          const response = await fetch(`${API_BASE_URL}/payment/checkout/pro`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            }
+          });
 
-        if (response.ok) {
-          const data = await response.json();
-          console.log('Payment processed via backend:', data);
+          if (response.ok) {
+            const data = await response.json();
+            console.log('Payment processed via backend:', data);
+          }
         }
       } catch (apiError) {
         console.warn('Backend API call failed, using demo mode:', apiError);
         // Continue with demo mode
       }
 
-      // Update user metadata in Clerk (for demo/production)
-      if (user) {
-        try {
-          const subscriptionEndDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-          await user.update({
-            publicMetadata: {
-              ...user.publicMetadata,
-              isPro: true,
-              subscriptionEndDate: subscriptionEndDate,
-            }
-          });
-          
-          // Also store in localStorage as backup
-          localStorage.setItem('user_isPro', 'true');
-          localStorage.setItem('user_subscriptionEndDate', subscriptionEndDate);
-          
-          console.log('User updated to Pro status');
-        } catch (metadataError) {
-          console.error('Failed to update Clerk metadata:', metadataError);
-          // Store in localStorage anyway as backup
-          const subscriptionEndDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-          localStorage.setItem('user_isPro', 'true');
-          localStorage.setItem('user_subscriptionEndDate', subscriptionEndDate);
-        }
+      // Update user to Pro status using AuthContext
+      try {
+        upgradeToPro();
+        console.log('User updated to Pro status');
+      } catch (upgradeError) {
+        console.error('Failed to upgrade user to Pro:', upgradeError);
       }
 
       // Show success message

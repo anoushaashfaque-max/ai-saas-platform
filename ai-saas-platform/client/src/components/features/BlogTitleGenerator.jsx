@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { useUser } from '@clerk/clerk-react'
+import { useAuth } from '../../contexts/AuthContext'
+import { useApi } from '../../hooks/useApi'
 import {
   Type,
   Copy,
@@ -16,7 +17,8 @@ import {
 import toast from 'react-hot-toast'
 
 const BlogTitleGenerator = () => {
-  const { user } = useUser()
+  const { user } = useAuth()
+  const { request } = useApi()
   const [loading, setLoading] = useState(false)
   const [titles, setTitles] = useState([])
   const [formData, setFormData] = useState({
@@ -79,78 +81,40 @@ const BlogTitleGenerator = () => {
     }
 
     setLoading(true)
-    
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      // Mock title generation
-      const mockTitles = Array.from({ length: formData.quantity }, (_, i) => {
-        const templates = {
-          clickbait: [
-            `You Won't Believe What ${formData.keyword} Can Do!`,
-            `The ${formData.keyword} Secret Nobody Tells You About`,
-            `${formData.keyword}: The Game Changer You Need Now`,
-            `Stop Doing ${formData.keyword} Wrong! Here's How`,
-            `This ${formData.keyword} Trick Will Save You Hours`
-          ],
-          professional: [
-            `The Comprehensive Guide to ${formData.keyword}`,
-            `Advancements in ${formData.keyword}: A Technical Overview`,
-            `Implementing ${formData.keyword} in Modern Business`,
-            `Best Practices for ${formData.keyword} Management`,
-            `${formData.keyword}: Current Trends and Future Outlook`
-          ],
-          casual: [
-            `Let's Talk About ${formData.keyword}`,
-            `My Journey With ${formData.keyword}`,
-            `${formData.keyword} Made Simple and Fun`,
-            `Why I Love ${formData.keyword} (And You Should Too!)`,
-            `The Friendly Guide to ${formData.keyword}`
-          ],
-          list: [
-            `10 Essential ${formData.keyword} Tips for Beginners`,
-            `7 ${formData.keyword} Mistakes You're Probably Making`,
-            `15 Creative Ways to Use ${formData.keyword}`,
-            `5 ${formData.keyword} Tools That Will Change Your Work`,
-            `21 ${formData.keyword} Statistics You Need to Know`
-          ],
-          question: [
-            `Is ${formData.keyword} Really Worth It?`,
-            `What Nobody Tells You About ${formData.keyword}`,
-            `Can ${formData.keyword} Transform Your Business?`,
-            `Why is ${formData.keyword} So Popular?`,
-            `How to Master ${formData.keyword} in 30 Days?`
-          ],
-          howto: [
-            `How to Get Started With ${formData.keyword}`,
-            `How to Master ${formData.keyword} in 7 Days`,
-            `How to Implement ${formData.keyword} Successfully`,
-            `How to Avoid Common ${formData.keyword} Pitfalls`,
-            `How to Scale Your ${formData.keyword} Strategy`
-          ]
-        }
 
-        const toneTemplates = templates[formData.tone] || templates.clickbait
-        const title = toneTemplates[i % toneTemplates.length]
-        
-        return {
-          id: Date.now() + i,
+    try {
+      const response = await request('/articles/blog-titles', {
+        method: 'POST',
+        body: JSON.stringify({
+          keyword: formData.keyword,
+          category: formData.category,
+          tone: formData.tone,
+          quantity: formData.quantity
+        }),
+      })
+
+      if (response.success) {
+        // Convert array of strings to objects for frontend display
+        const titles = response.data.titles.map((title, index) => ({
+          id: Date.now() + index,
           text: title,
           category: formData.category,
           tone: formData.tone,
           score: Math.floor(Math.random() * 40) + 60, // 60-100 score
           clicks: Math.floor(Math.random() * 1000) + 100,
           shares: Math.floor(Math.random() * 500) + 50
-        }
-      })
+        }))
 
-      setTitles(mockTitles)
-      setSelectedTitles([])
-      
-      toast.success(`Generated ${mockTitles.length} blog titles!`)
+        setTitles(titles)
+        setSelectedTitles([])
+
+        toast.success(`Generated ${titles.length} blog titles!`)
+      } else {
+        toast.error(response.message || 'Failed to generate blog titles')
+      }
     } catch (error) {
-      toast.error('Failed to generate titles')
+      console.error('Blog title generation error:', error)
+      toast.error(error.message || 'Failed to generate blog titles')
     } finally {
       setLoading(false)
     }

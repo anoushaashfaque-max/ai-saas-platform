@@ -1,83 +1,33 @@
-import { useState, useCallback } from 'react';
-import { API_BASE_URL } from '../utils/constants';
+import { useCallback } from 'react';
+
+const API_BASE_URL = 'http://localhost:5000/api';
 
 const useApi = () => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
   const request = useCallback(async (endpoint, options = {}) => {
-    setLoading(true);
-    setError(null);
-
+    // Get token from localStorage
     const token = localStorage.getItem('token');
+
     const headers = {
       'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
       ...options.headers,
     };
 
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...options,
+      headers,
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Something went wrong');
     }
 
-    try {
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        ...options,
-        headers,
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Something went wrong');
-      }
-
-      return data;
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
+    return data;
   }, []);
 
-  const get = useCallback((endpoint, options = {}) => {
-    return request(endpoint, { ...options, method: 'GET' });
-  }, [request]);
-
-  const post = useCallback((endpoint, data, options = {}) => {
-    return request(endpoint, {
-      ...options,
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }, [request]);
-
-  const put = useCallback((endpoint, data, options = {}) => {
-    return request(endpoint, {
-      ...options,
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-  }, [request]);
-
-  const del = useCallback((endpoint, options = {}) => {
-    return request(endpoint, { ...options, method: 'DELETE' });
-  }, [request]);
-
-  const clearError = useCallback(() => {
-    setError(null);
-  }, []);
-
-  return {
-    loading,
-    error,
-    request,
-    get,
-    post,
-    put,
-    delete: del,
-    clearError,
-  };
+  return { request };
 };
 
-export default useApi;
+export { useApi };

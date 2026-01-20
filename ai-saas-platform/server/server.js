@@ -3,6 +3,9 @@ const cors = require('cors');
 const morgan = require('morgan');
 const dotenv = require('dotenv');
 const connectDB = require('./config/database');
+const helmet = require('helmet');
+
+
 
 // Load environment variables
 dotenv.config();
@@ -17,6 +20,8 @@ const adminRoutes = require('./routes/adminRoutes');
 
 // Initialize Express app
 const app = express();
+// helmet middleware
+app.use(helmet());
 
 // Connect to database
 connectDB();
@@ -41,9 +46,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // ---------------- API ROUTES ----------------
-// ❗ Clerk middleware GLOBAL nahi lagaya
-// ❗ Authentication route-level par hoga
-
+// Routes with authentication middleware applied at route level
 app.use('/api/auth', authRoutes);
 app.use('/api/articles', articleRoutes);
 app.use('/api/images', imageRoutes);

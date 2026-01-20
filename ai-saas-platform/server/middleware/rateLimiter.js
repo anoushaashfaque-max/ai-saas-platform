@@ -12,6 +12,18 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Public rate limiter for FREE tools (no auth required)
+const publicLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 10, // Allow more requests for FREE tools
+  message: {
+    success: false,
+    message: 'Too many requests, please try again later.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Strict rate limiter for AI generation endpoints
 const generationLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
@@ -39,5 +51,6 @@ const paymentLimiter = rateLimit({
 module.exports = {
   apiLimiter,
   generationLimiter,
-  paymentLimiter
+  paymentLimiter,
+  publicLimiter
 };

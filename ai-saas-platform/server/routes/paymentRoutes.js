@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   createProCheckout,
   createCreditPayment,
+  createPaymentIntent,
   handleStripeWebhook,
   getPaymentHistory
 } = require('../controllers/paymentController');
@@ -20,6 +21,9 @@ router.post('/checkout/pro', paymentLimiter, createProCheckout);
 
 // Create credit payment
 router.post('/checkout/credits', paymentLimiter, createCreditPayment);
+
+// Create payment intent
+router.post('/create-intent', paymentLimiter, createPaymentIntent);
 
 // Get payment history
 router.get('/history', apiLimiter, getPaymentHistory);

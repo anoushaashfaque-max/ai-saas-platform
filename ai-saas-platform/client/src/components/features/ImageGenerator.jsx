@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { useUser } from '@clerk/clerk-react';
+import { useAuth } from '../../contexts/AuthContext';
 import { Download, RefreshCw, Sparkles, Upload, Crown } from 'lucide-react';
 import Button from '../common/Button';
 
 const ImageGenerator = () => {
-  const { user } = useUser();
+  const { user } = useAuth();
   const [prompt, setPrompt] = useState('');
   const [style, setStyle] = useState('realistic');
   const [size, setSize] = useState('512x512');

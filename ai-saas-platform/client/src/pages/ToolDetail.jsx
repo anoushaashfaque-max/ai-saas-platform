@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useUser } from '@clerk/clerk-react';
+import { useAuth } from '../contexts/AuthContext';
 import { ArrowLeft, Lock, CreditCard } from 'lucide-react';
 import Button from '../components/common/Button';
 import PaymentModal from '../components/common/PaymentModal';
@@ -16,7 +16,7 @@ import ResumeReviewer from '../components/features/ResumeReviewer';
 const ToolDetail = () => {
   const { toolId } = useParams();
   const navigate = useNavigate();
-  const { user, isLoaded } = useUser();
+  const { user, loading } = useAuth();
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   const tools = {
@@ -29,15 +29,15 @@ const ToolDetail = () => {
   };
 
   const tool = tools[toolId];
-  const userIsPro = user?.publicMetadata?.isPro || localStorage.getItem('user_isPro') === 'true' || false;
+  const userIsPro = user?.isPro || localStorage.getItem('user_isPro') === 'true' || false;
 
   useEffect(() => {
-    if (!isLoaded) return;
+    if (loading) return;
     if (!tool) navigate('/');
     if (!tool.free && !userIsPro) setShowPaymentModal(true);
-  }, [tool, userIsPro, isLoaded, navigate]);
+  }, [tool, userIsPro, loading, navigate]);
 
-  if (!isLoaded) return <div className="text-center py-12">Loading...</div>;
+  if (loading) return <div className="text-center py-12">Loading...</div>;
   if (!tool) return <div className="text-center py-12">Tool not found</div>;
 
   const ToolComponent = tool.component;

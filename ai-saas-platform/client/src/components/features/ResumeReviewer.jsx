@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { useUser } from '@clerk/clerk-react';
+import { useAuth } from '../../contexts/AuthContext';
 import { Upload, FileText, Star, TrendingUp, Download, Edit3, CheckCircle, Crown } from 'lucide-react';
 import Button from '../common/Button';
 
 const ResumeReviewer = () => {
-  const { user } = useUser();
+  const { user } = useAuth();
   const [resumeFile, setResumeFile] = useState(null);
   const [resumeText, setResumeText] = useState('');
   const [loading, setLoading] = useState(false);

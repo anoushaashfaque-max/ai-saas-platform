@@ -9,15 +9,18 @@ export const useAuth = () => {
 
   useEffect(() => {
     // Check if user is logged in
-    const userData = localStorage.getItem('ai_saas_user');
+    const userData = localStorage.getItem('user');
+    const token = localStorage.getItem('token');
     const savedAuthMethod = localStorage.getItem('auth_method');
-    
-    if (userData) {
+
+    if (userData && token) {
       try {
-        setUser(JSON.parse(userData));
+        const user = JSON.parse(userData);
+        setUser(user);
         setAuthMethod(savedAuthMethod || 'email');
       } catch (error) {
-        localStorage.removeItem('ai_saas_user');
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
         localStorage.removeItem('auth_method');
       }
     }
@@ -43,7 +46,8 @@ export const useAuth = () => {
         createdAt: new Date().toISOString(),
       };
       
-      localStorage.setItem('ai_saas_user', JSON.stringify(clerkUser));
+      localStorage.setItem('user', JSON.stringify(clerkUser));
+      localStorage.setItem('token', 'demo_clerk_token');
       localStorage.setItem('auth_method', 'clerk');
       setUser(clerkUser);
       setAuthMethod('clerk');
@@ -59,23 +63,32 @@ export const useAuth = () => {
   // Traditional Email/Password Login
   const loginWithEmail = async (email, password) => {
     try {
-      // Mock login - Replace with actual API call
-      const userData = {
-        id: 'email_' + Date.now(),
-        name: email.split('@')[0],
-        email,
-        isPro: false,
-        hasPurchasedCredits: false,
-        credits: 10,
-        authMethod: 'email',
-        createdAt: new Date().toISOString(),
-      };
-      
-      localStorage.setItem('ai_saas_user', JSON.stringify(userData));
+      // Call backend login API
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Login failed');
+      }
+
+      // Store user data and token
+      const userData = data.data.user;
+      const token = data.data.token;
+
+      localStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem('token', token);
       localStorage.setItem('auth_method', 'email');
+
       setUser(userData);
       setAuthMethod('email');
-      
+
       navigate('/dashboard');
       return userData;
     } catch (error) {
@@ -87,23 +100,32 @@ export const useAuth = () => {
   // Traditional Email/Password Signup
   const signupWithEmail = async (name, email, password) => {
     try {
-      // Mock signup - Replace with actual API call
-      const userData = {
-        id: 'email_' + Date.now(),
-        name,
-        email,
-        isPro: false,
-        hasPurchasedCredits: false,
-        credits: 10,
-        authMethod: 'email',
-        createdAt: new Date().toISOString(),
-      };
-      
-      localStorage.setItem('ai_saas_user', JSON.stringify(userData));
+      // Call backend signup API
+      const response = await fetch('http://localhost:5000/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Signup failed');
+      }
+
+      // Store user data and token
+      const userData = data.data.user;
+      const token = data.data.token;
+
+      localStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem('token', token);
       localStorage.setItem('auth_method', 'email');
+
       setUser(userData);
       setAuthMethod('email');
-      
+
       navigate('/dashboard');
       return userData;
     } catch (error) {
@@ -123,7 +145,8 @@ export const useAuth = () => {
   };
 
   const logout = () => {
-    localStorage.removeItem('ai_saas_user');
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
     localStorage.removeItem('auth_method');
     setUser(null);
     setAuthMethod(null);
@@ -138,7 +161,7 @@ export const useAuth = () => {
       credits: user.credits + 1000,
     };
     
-    localStorage.setItem('ai_saas_user', JSON.stringify(updatedUser));
+    localStorage.setItem('user', JSON.stringify(updatedUser));
     setUser(updatedUser);
     return updatedUser;
   };

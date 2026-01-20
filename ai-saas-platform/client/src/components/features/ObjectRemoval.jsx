@@ -1,10 +1,10 @@
 import React, { useState, useRef } from 'react';
-import { useUser } from '@clerk/clerk-react';
+import { useAuth } from '../../contexts/AuthContext';
 import { Upload, Download, Crop, MousePointer, ZoomIn, RotateCw, Crown } from 'lucide-react';
 import Button from '../common/Button';
 
 const ObjectRemoval = () => {
-  const { user } = useUser();
+  const { user } = useAuth();
   const [originalImage, setOriginalImage] = useState('');
   const [processedImage, setProcessedImage] = useState('');
   const [loading, setLoading] = useState(false);
